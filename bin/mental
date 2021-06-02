@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+# To debug, uncomment:
+# set -o xtrace
+
+# Utility functions
+
+function cget {
+  echo "$1" | sed -n -E -e "/^$2=.*$/p" | tail -n 1 | cut -d "=" -f 2
+}
+
+function cgetl {
+  echo "$1" | sed -n -E -e "/^$2\[\]=.*$/p" | cut -d "=" -f 2
+}
+
+# Set defaults
+
+path="${1:-$(pwd)}/.mental"
+
+# Read configuration
+
+if [ ! -f "$path" ]; then
+  echo "Configuration file not found: $path" >&2
+  exit 2
+fi
+
+config=$(cat "$path")
+
+directory=$(cd "$(dirname "$path")"; cd "$(cget "$config" "directory")"; pwd)
+name=$(cget "$config" "name")
+tmx=$(cgetl "$config" "tmux")
+urls=$(cgetl "$config" "urls")
+
+# Open URLs
+
+# echo "$urls" | xargs open
+
+# Initialize tmux session
+
+tmux new-session -A -d -c "$directory" -s "$name"
+
+echo "$tmx" | while read -r window; do
+  name=$(echo "$window" | cut -d "[" -f 1)
+
+  # Create new window
+  tmux new-window -d -S -n "$name"
+
+  # Create window panes
+  splits=$(echo "$window" | sed -E -e "s/^.+\[(.+)\]$/\1/")
+
+  echo "$splits" | while read -r -n 1 split; do
+    if [ "$split" = "|" ]; then
+      tmux split-window -t "$name" -h -c '#{pane_current_path}'
+    elif [ "$split" = "-" ]; then
+      tmux split-window -t "$name" -v -c '#{pane_current_path}'
+    fi
+  done
+
+  # tmux send-keys -l
+done
+
+tmux kill-window -t :1
+tmux select-window -t :1
+
+tmux attach-session -t "$name"

@@ -1,0 +1,15 @@
+# Context details
+name=mental-dev
+
+# Path
+# directory=.
+
+# Tmux
+# tmux[]=develop[-]
+# tmux[]=run[|-]
+tmux[]=[`nvm-init && nvm use 14.15.5<enter>e .`]
+tmux[]=run[`script/server`|`script/tunnel`]
+
+# Context URLs
+urls[]=https://github.com/pmeinhardt/mental/issues
+urls[]=https://github.com/pmeinhardt/mental/pulls
